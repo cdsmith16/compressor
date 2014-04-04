@@ -1,14 +1,8 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.math.BigInteger;
 
 
 public class Compressor {
@@ -18,7 +12,7 @@ public class Compressor {
 	private final int MAX_LENGTH;
 	String inputFile;
 	String outputFile;
-	BufferedReader reader;
+	BufferedInputStream reader;
 	
 	private class SpecByte{
 		public byte cur;
@@ -38,8 +32,8 @@ public class Compressor {
 			while(curByte.next!= null){
 				curByte = curByte.next;
 			}
-			byte curMask = (byte) ch;
-			curMask = (byte) (curMask >>> (curByte.filled+1));
+			int curMask = ch;
+			curMask = (curMask >>> (curByte.filled+1));
 			curByte.cur = (byte) (curByte.cur | curMask);
 			byte nextByte = (byte) (ch << (8-(curByte.filled+1)));
 			nextByte = (byte) (nextByte & 0xFF);
@@ -60,7 +54,7 @@ public class Compressor {
 				curByte = curByte.next;
 			}
 			int origFilled = curByte.filled;
-			byte curMask;
+			int curMask;
 			
 			if(curByte.filled == 0){
 				curByte.cur = (byte) (curByte.cur | (byte) 128);
@@ -69,28 +63,28 @@ public class Compressor {
 				addOnes = (byte) (addOnes >>> (curByte.filled-1));
 				curByte.cur = (byte) (curByte.cur | addOnes);
 			}
-			
+
 			int distLen = distance;
 			distLen = (distLen << 4);
 			distLen = (distLen | length);
 			
-			byte lenMask = (byte) distLen;
+			int byteLenMask = distLen;
 			distLen = (distLen >>> 8);
-			byte distMask = (byte) distLen;
+			int byteDistMask = distLen;
 			
-			curMask = distMask;
-			curMask = (byte) (curMask >> (origFilled +1));
+			curMask = byteDistMask;
+			curMask = (byte) (curMask >>> (origFilled +1));
 			curByte.cur = (byte) (curByte.cur | curMask);
 			
-			byte nextByte = distMask;
+			byte nextByte = (byte) byteDistMask;
 			nextByte = (byte) (nextByte << (8-(origFilled +1)));
-			curMask = lenMask;
-			curMask = (byte) (curMask >> (origFilled +1));
+			curMask = byteLenMask;
+			curMask = (byte) (curMask >>> (origFilled +1));
 			nextByte = (byte) (nextByte | curMask);
 			curByte.next = new SpecByte(nextByte, 8);
 			curByte = curByte.next;
 			
-			byte lastByte = lenMask;
+			byte lastByte = (byte) byteLenMask;
 			lastByte = (byte) (lastByte << (8-(origFilled +1)));
 			
 			if(origFilled == 7){
@@ -119,12 +113,12 @@ public class Compressor {
 			sb = sb.next;
 			str = String.format("%8s", Integer.toBinaryString(sb.cur & 0xFF)).replace(" ", "0");
 			System.out.println(str);
-			System.out.println((char)sb.cur);
+			//System.out.println((char)sb.cur);
 		}
 	}
 	
 	public void Compress() throws IOException{
-		reader = new BufferedReader(new FileReader(inputFile));
+		reader = new BufferedInputStream(new FileInputStream(inputFile));
 		topByte = new SpecByte((byte) 0,0);
 		String window = "";
 		
@@ -167,12 +161,12 @@ public class Compressor {
 		}
 		
 		reader.close();
-		printAllBytes(topByte);
+		//printAllBytes(topByte);
 		return;
 	}
 
 	
-	public void WriteOutputBinary(String outputFile){
+	public void WriteOutputBinary(){
 		FileOutputStream out = null;
 
 		try {
@@ -197,18 +191,10 @@ public class Compressor {
 	 * @throws IOException 
 	 */
 	public static void main(String[] args) throws IOException {
-		Compressor compressor = new Compressor("/Users/Mom/Documents/AndroidStuff/compressor/src/test.txt",null);
+		Compressor compressor = new Compressor(args[0],args[1]);
 		compressor.Compress();
-		compressor.WriteOutputBinary("/Users/Mom/Documents/AndroidStuff/compressor/src/testOutput.txt");
+		compressor.WriteOutputBinary();
 		
-		
-		/**
-		String str = String.format("%8s", Integer.toBinaryString(127)).replace(" ", "$");
-		System.out.println(str);
-		str = String.format("%16s", Integer.toBinaryString(325)).replace(" ", "$");
-		System.out.println(str);
-		System.out.println(Integer.numberOfLeadingZeros(25));
-		*/
 	}
 
 }
